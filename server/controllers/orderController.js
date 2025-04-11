@@ -3,6 +3,8 @@ import Product from "../models/Product.js";
 import stripe from "stripe"
 import User from "../models/User.js"
 
+const INR_TO_USD = 1 / 82.5; // 1 Rupee = 0.0121 USD 
+
 // Place Order COD : /api/order/cod
 export const placeOrderCOD = async (req, res)=>{
     try {
@@ -72,18 +74,22 @@ export const placeOrderStripe = async (req, res)=>{
 
     // create line items for stripe
 
-     const line_items = productData.map((item)=>{
+    const line_items = productData.map((item) => {
+        const itemPriceWithTaxINR = item.price + item.price * 0.02;
+        const priceInUSD = Math.round(itemPriceWithTaxINR * INR_TO_USD * 100); // Stripe expects amount in cents
+    
         return {
             price_data: {
                 currency: "usd",
-                product_data:{
+                product_data: {
                     name: item.name,
                 },
-                unit_amount: Math.floor(item.price + item.price * 0.02)  * 100
+                unit_amount: priceInUSD, // final USD price in cents
             },
             quantity: item.quantity,
-        }
-     })
+        };
+    });
+    
 
      // create session
      const session = await stripeInstance.checkout.sessions.create({

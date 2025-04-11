@@ -9,7 +9,9 @@ const Home = () => {
   return (
     <div className='mt-10'>
       <MainBanner />
-      <Categories />
+      <div id="categories-section">
+        <Categories />
+      </div>
       <BestSeller />
       <BottomBanner/>
       <NewsLetter />

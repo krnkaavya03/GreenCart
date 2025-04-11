@@ -150,29 +150,24 @@ export const footerLinks = [
     title: "Quick Links",
     links: [
       { text: "Home", url: "#" },
-      { text: "Best Sellers", url: "#" },
-      { text: "Offers & Deals", url: "#" },
-      { text: "Contact Us", url: "#" },
-      { text: "FAQs", url: "#" },
+      { text: "About Us", url: "about"},
+      { text: "FAQs", url: "faq"},
     ],
   },
   {
     title: "Need help?",
     links: [
-      { text: "Delivery Information", url: "#" },
-      { text: "Return & Refund Policy", url: "#" },
-      { text: "Payment Methods", url: "#" },
-      { text: "Track your Order", url: "#" },
-      { text: "Contact Us", url: "#" },
+      { text: "Delivery Information", url: "my-orders" },
+      { text: "Return & Refund Policy", url: "https://www.chatbase.co/chatbot-iframe/wc3Lu6g2pJqSG7_MqYe_J" },
+      { text: "Payment Methods", url: "cart" },
     ],
   },
   {
     title: "Follow Us",
     links: [
-      { text: "Instagram", url: "#" },
-      { text: "Twitter", url: "#" },
-      { text: "Facebook", url: "#" },
-      { text: "YouTube", url: "#" },
+      { text: "Instagram", url: "https://www.instagram.com/" },
+      { text: "Twitter", url: "https://x.com/?lang=en" },
+      { text: "Facebook", url: "https://www.facebook.com/" },
     ],
   },
 ];
