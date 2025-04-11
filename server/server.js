@@ -17,24 +17,37 @@ import { stripeWebhooks } from './controllers/orderController.js';
 const app = express();
 const port = process.env.PORT || 4000;
 
-// List of allowed frontend origins
+// ✅ List of allowed frontend origins
 const allowedOrigins = [
   'http://localhost:5173',
   'https://greencart-deploy-d9om.vercel.app'
 ];
 
-// Stripe webhook route (must come before body parsers)
+// ✅ CORS Middleware Setup (before any routes/middleware)
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
+// ✅ Parse cookies (important for JWT in cookies)
+app.use(cookieParser());
+
+// ✅ Stripe webhook route (must come BEFORE body parser)
 app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
 
-// Middlewares
-app.use(express.json()); // JSON parser
-app.use(cookieParser()); // Parse cookies
-app.use(cors({ origin: allowedOrigins, credentials: true })); // Enable CORS
+// ✅ Body parser (after stripe raw handler)
+app.use(express.json());
 
-// Test API route
-app.get('/', (req, res) => res.send("API is Working"));
+// ✅ Test API route
+app.get('/', (req, res) => res.send("✅ API is Working"));
 
-// Route handlers
+// ✅ Route handlers
 app.use('/api/user', userRouter);
 app.use('/api/seller', sellerRouter);
 app.use('/api/product', productRouter);
@@ -42,18 +55,18 @@ app.use('/api/cart', cartRouter);
 app.use('/api/address', addressRouter);
 app.use('/api/order', orderRouter);
 
-// Connect to DB and Cloudinary, then start the server
+// ✅ Connect DB & Cloudinary then start server
 const startServer = async () => {
   try {
     await connectDB();
     await connectCloudinary();
 
     app.listen(port, () => {
-      console.log(`✅ Server is running on http://localhost:${port}`);
+      console.log(`🚀 Server running at http://localhost:${port}`);
     });
   } catch (error) {
     console.error('❌ Server failed to start:', error.message);
-    process.exit(1); // Exit with failure
+    process.exit(1);
   }
 };
 

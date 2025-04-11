@@ -2,29 +2,32 @@ import jwt from 'jsonwebtoken';
 
 const authUser = async (req, res, next) => {
   try {
-    const { token } = req.cookies;
+    // ✅ Get token from cookie
+    const token = req.cookies.token;
 
     if (!token) {
-      return res.status(401).json({ success: false, message: 'Access Denied: No Token Provided' });
+      return res.status(401).json({ success: false, message: "Access Denied: No token provided" });
     }
 
+    // ✅ Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (!decoded || !decoded.id) {
-      return res.status(403).json({ success: false, message: 'Access Denied: Invalid Token' });
+      return res.status(403).json({ success: false, message: "Access Denied: Invalid token" });
     }
 
-    // Attach user ID to request object (not req.body)
+    // ✅ Attach user ID to request
     req.user = { _id: decoded.id };
-
-    next(); // Continue to the next middleware/controller
+    next();
   } catch (error) {
     console.error("Auth Error:", error.message);
     return res.status(401).json({
       success: false,
-      message: error.name === 'TokenExpiredError' ? 'Session expired. Please log in again.' : 'Authentication failed',
+      message: error.name === "TokenExpiredError"
+        ? "Session expired. Please log in again."
+        : "Authentication failed",
     });
   }
 };
 
-export default authUser;
+export default authUser
