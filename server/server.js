@@ -20,7 +20,7 @@ const port = process.env.PORT || 4000;
 // ✅ List of allowed frontend origins
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://greencart-deploy-d9om.vercel.app'
+  'https://greencartf.onrender.com'
 ];
 
 // ✅ CORS Middleware Setup (before any routes/middleware)
