@@ -20,7 +20,7 @@ const port = process.env.PORT || 4000;
 // ✅ List of allowed frontend origins
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://greencartf.onrender.com'
+  'https://greencartfe.onrender.com'
 ];
 
 // ✅ CORS Middleware Setup (before any routes/middleware)
