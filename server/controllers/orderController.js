@@ -3,20 +3,20 @@ import Product from "../models/Product.js";
 import User from "../models/User.js";
 import Stripe from "stripe";
 
-// Currency conversion
-const INR_TO_USD = 1 / 82.5; // 1 INR = 0.0121 USD
+// ✅ Currency conversion rate
+const INR_TO_USD = 1 / 82.5; // 1 INR ≈ 0.0121 USD
 
 const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // ----------------------------
-// PLACE ORDER - CASH ON DELIVERY
+// ✅ PLACE ORDER - CASH ON DELIVERY
 // ----------------------------
 export const placeOrderCOD = async (req, res) => {
     try {
         const { userId, items, address } = req.body;
 
-        if (!address || !items || items.length === 0) {
-            return res.status(400).json({ success: false, message: "Invalid data" });
+        if (!userId || !address || !items || items.length === 0) {
+            return res.status(400).json({ success: false, message: "Invalid request data." });
         }
 
         let amount = 0;
@@ -38,7 +38,7 @@ export const placeOrderCOD = async (req, res) => {
             paymentType: "COD",
         });
 
-        return res.json({ success: true, message: "Order placed successfully." });
+        return res.json({ success: true, message: "✅ Order placed successfully (COD)." });
 
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -46,15 +46,15 @@ export const placeOrderCOD = async (req, res) => {
 };
 
 // ----------------------------
-// PLACE ORDER - STRIPE
+// ✅ PLACE ORDER - STRIPE
 // ----------------------------
 export const placeOrderStripe = async (req, res) => {
     try {
         const { userId, items, address } = req.body;
         const { origin } = req.headers;
 
-        if (!address || !items || items.length === 0) {
-            return res.status(400).json({ success: false, message: "Invalid data" });
+        if (!userId || !address || !items || items.length === 0) {
+            return res.status(400).json({ success: false, message: "Invalid request data." });
         }
 
         let amount = 0;
@@ -87,13 +87,11 @@ export const placeOrderStripe = async (req, res) => {
         });
 
         const line_items = productData.map(item => {
-            const priceInUSD = Math.round(item.priceWithTax * INR_TO_USD * 100); // in cents
+            const priceInUSD = Math.round(item.priceWithTax * INR_TO_USD * 100); // cents
             return {
                 price_data: {
-                    currency: "usd", // USD to match conversion
-                    product_data: {
-                        name: item.name,
-                    },
+                    currency: "usd",
+                    product_data: { name: item.name },
                     unit_amount: priceInUSD,
                 },
                 quantity: item.quantity,
@@ -119,11 +117,10 @@ export const placeOrderStripe = async (req, res) => {
 };
 
 // ----------------------------
-// STRIPE WEBHOOK - VERIFY PAYMENT
+// ✅ STRIPE WEBHOOK - VERIFY PAYMENT
 // ----------------------------
 export const stripeWebhooks = async (req, res) => {
     const sig = req.headers["stripe-signature"];
-
     let event;
 
     try {
@@ -133,7 +130,7 @@ export const stripeWebhooks = async (req, res) => {
             process.env.STRIPE_WEBHOOK_SECRET
         );
     } catch (error) {
-        return res.status(400).send(`Webhook Error: ${error.message}`);
+        return res.status(400).send(`❌ Webhook Error: ${error.message}`);
     }
 
     switch (event.type) {
@@ -143,6 +140,7 @@ export const stripeWebhooks = async (req, res) => {
 
             await Order.findByIdAndUpdate(orderId, { isPaid: true });
             await User.findByIdAndUpdate(userId, { cartItems: {} });
+
             break;
         }
 
@@ -155,24 +153,29 @@ export const stripeWebhooks = async (req, res) => {
         }
 
         default:
-            console.log(`Unhandled event type: ${event.type}`);
+            console.log(`⚠️ Unhandled event type: ${event.type}`);
     }
 
     res.json({ received: true });
 };
 
 // ----------------------------
-// GET USER ORDERS
+// ✅ GET USER ORDERS
 // ----------------------------
 export const getUserOrders = async (req, res) => {
     try {
         const { userId } = req.body;
 
+        if (!userId) {
+            return res.status(400).json({ success: false, message: "User ID required." });
+        }
+
         const orders = await Order.find({
             userId,
             $or: [{ paymentType: "COD" }, { isPaid: true }]
         })
-            .populate("items.product address")
+            .populate("items.product")
+            .populate("address")
             .sort({ createdAt: -1 });
 
         return res.json({ success: true, orders });
@@ -183,14 +186,15 @@ export const getUserOrders = async (req, res) => {
 };
 
 // ----------------------------
-// GET ALL ORDERS (Admin / Seller)
+// ✅ GET ALL ORDERS (Admin / Seller)
 // ----------------------------
 export const getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find({
             $or: [{ paymentType: "COD" }, { isPaid: true }]
         })
-            .populate("items.product address")
+            .populate("items.product")
+            .populate("address")
             .sort({ createdAt: -1 });
 
         return res.json({ success: true, orders });
