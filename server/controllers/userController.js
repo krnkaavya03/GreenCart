@@ -8,22 +8,16 @@ export const register = async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Missing Details' });
+      return res.json({ success: false, message: 'All fields are required' });
     }
 
     const existingUser = await User.findOne({ email });
-
     if (existingUser) {
-      return res.status(409).json({ success: false, message: 'User already exists' });
+      return res.json({ success: false, message: 'User already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const user = await User.create({ name, email, password: hashedPassword });
-
-    if (!user) {
-      return res.status(500).json({ success: false, message: 'User creation failed' });
-    }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
@@ -34,10 +28,14 @@ export const register = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.status(201).json({ success: true, user: { email: user.email, name: user.name } });
+    return res.json({
+      success: true,
+      user: { name: user.name, email: user.email },
+    });
+
   } catch (error) {
-    console.log(error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.log('Register Error:', error.message);
+    res.json({ success: false, message: 'Internal Server Error' });
   }
 };
 
@@ -46,16 +44,19 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password)
-      return res.status(400).json({ success: false, message: 'Email and password are required' });
+    if (!email || !password) {
+      return res.json({ success: false, message: 'Email and password are required' });
+    }
 
     const user = await User.findOne({ email });
-    if (!user)
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    if (!user) {
+      return res.json({ success: false, message: 'Invalid email or password' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    if (!isMatch) {
+      return res.json({ success: false, message: 'Invalid email or password' });
+    }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
@@ -66,10 +67,14 @@ export const login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.json({ success: true, user: { email: user.email, name: user.name } });
+    return res.json({
+      success: true,
+      user: { name: user.name, email: user.email },
+    });
+
   } catch (error) {
-    console.log(error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.log('Login Error:', error.message);
+    res.json({ success: false, message: 'Internal Server Error' });
   }
 };
 
@@ -77,36 +82,33 @@ export const login = async (req, res) => {
 export const isAuth = async (req, res) => {
   try {
     const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
+    if (!userId) return res.json({ success: false, message: 'Unauthorized' });
 
     const user = await User.findById(userId).select("-password");
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    if (!user) return res.json({ success: false, message: 'User not found' });
 
     return res.json({ success: true, user });
+
   } catch (error) {
-    console.log(error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.log('Auth Check Error:', error.message);
+    res.json({ success: false, message: 'Internal Server Error' });
   }
 };
 
 // ✅ Logout User : /api/user/logout
-export const logout = async (req, res) => {
+export const logout = (req, res) => {
   try {
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
     });
-    return res.json({ success: true, message: "Logged Out" });
+
+    return res.json({ success: true, message: "Logged out successfully" });
+
   } catch (error) {
-    console.log(error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.log('Logout Error:', error.message);
+    res.json({ success: false, message: 'Internal Server Error' });
   }
 };
 
@@ -114,37 +116,33 @@ export const logout = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.user?._id;
-
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
-
     const { name, email } = req.body;
 
-    if (!name || !email)
-      return res.status(400).json({ success: false, message: 'Name and email are required' });
+    if (!userId || !name || !email) {
+      return res.json({ success: false, message: 'Name and email are required' });
+    }
 
     const existingEmailUser = await User.findOne({ email });
-
     if (existingEmailUser && existingEmailUser._id.toString() !== userId.toString()) {
-      return res.status(409).json({ success: false, message: 'Email already in use' });
+      return res.json({ success: false, message: 'Email already in use' });
     }
 
     const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    if (!user) return res.json({ success: false, message: 'User not found' });
 
     user.name = name;
     user.email = email;
-
     await user.save();
 
-    return res.json({ success: true, message: "Profile updated", user: { name: user.name, email: user.email } });
+    return res.json({
+      success: true,
+      message: "Profile updated successfully",
+      user: { name: user.name, email: user.email },
+    });
+
   } catch (error) {
-    console.log(error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.log('Update Profile Error:', error.message);
+    res.json({ success: false, message: 'Internal Server Error' });
   }
 };
 
@@ -152,35 +150,26 @@ export const updateProfile = async (req, res) => {
 export const changePassword = async (req, res) => {
   try {
     const userId = req.user?._id;
-
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
-
     const { oldPassword, newPassword } = req.body;
 
-    if (!oldPassword || !newPassword)
-      return res.status(400).json({ success: false, message: 'Both old and new passwords are required' });
-
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+    if (!userId || !oldPassword || !newPassword) {
+      return res.json({ success: false, message: 'Old and new passwords are required' });
     }
 
+    const user = await User.findById(userId);
+    if (!user) return res.json({ success: false, message: 'User not found' });
+
     const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) return res.json({ success: false, message: 'Old password is incorrect' });
 
-    if (!isMatch)
-      return res.status(401).json({ success: false, message: 'Old password is incorrect' });
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-    user.password = hashed;
-
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
     await user.save();
 
     return res.json({ success: true, message: "Password changed successfully" });
+
   } catch (error) {
-    console.log(error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.log('Change Password Error:', error.message);
+    res.json({ success: false, message: 'Internal Server Error' });
   }
 };
