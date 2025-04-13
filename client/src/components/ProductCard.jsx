@@ -5,8 +5,8 @@ import { useAppContext } from "../context/AppContext";
 const ProductCard = ({ product }) => {
     const { currency, addToCart, removeFromCart, cartItems, navigate } = useAppContext();
 
-    const averageRating = product.averageRating || 0; // Dynamic average rating
-    const totalReviews = product.reviews?.length || 0; // Total number of reviews
+    const averageRating = product.averageRating || 0;
+    const totalReviews = product.reviews?.length || 0;
 
     return (
         product && (
@@ -31,21 +31,19 @@ const ProductCard = ({ product }) => {
                     <p>{product.category}</p>
                     <p className="text-gray-700 font-medium text-lg truncate w-full">{product.name}</p>
 
-                    {/* Star Ratings + Average Rating */}
-                    <div className="flex items-center gap-1 mt-1">
-                        {Array(5)
-                            .fill("")
-                            .map((_, i) => (
-                                <img
-                                    key={i}
-                                    className="md:w-3.5 w-3"
-                                    src={i < Math.round(averageRating) ? assets.star_icon : assets.star_dull_icon}
-                                    alt="star"
-                                />
-                            ))}
-                        <p className="text-xs text-gray-600 ml-1">({averageRating.toFixed(1)} / 5)</p>
+                    {/* Dynamic Star Ratings + Displayed Average */}
+                    <div className="flex items-center gap-1">
+                        {Array(5).fill("").map((_, i) => (
+                            <img
+                                key={i}
+                                className="md:w-3.5 w-3"
+                                src={i < Math.round(averageRating) ? assets.star_icon : assets.star_dull_icon}
+                                alt="star"
+                            />
+                        ))}
+                        <span className="text-sm text-yellow-600 font-semibold">({averageRating.toFixed(1)})</span>
+                        <p className="text-xs text-gray-400 ml-1">[{totalReviews} reviews]</p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">{totalReviews} review{totalReviews !== 1 ? "s" : ""}</p>
 
                     {/* Price and Cart Actions */}
                     <div className="flex items-end justify-between mt-3">
@@ -59,10 +57,10 @@ const ProductCard = ({ product }) => {
                             </span>
                         </p>
 
-                        {/* Add to Cart / Remove from Cart */}
+                        {/* Add/Remove from Cart */}
                         <div
                             onClick={(e) => {
-                                e.stopPropagation(); // Prevent navigation on button click
+                                e.stopPropagation();
                             }}
                             className="text-primary"
                         >
