@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import User from '../models/user.model.js'; // Optional: if you want to fetch full user
 
 const authUser = async (req, res, next) => {
   try {
@@ -14,15 +15,21 @@ const authUser = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Access Denied: Invalid Token' });
     }
 
-    // Attach user ID to request object (not req.body)
-    req.user = { _id: decoded.id };
+    // Optional: fetch user from DB to ensure existence and freshness
+    const user = await User.findById(decoded.id).select('_id name email isAdmin');
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found. Please log in again.' });
+    }
 
-    next(); // Continue to the next middleware/controller
+    req.user = user; // Attach full user (or just ID if preferred)
+    next();
   } catch (error) {
     console.error("Auth Error:", error.message);
     return res.status(401).json({
       success: false,
-      message: error.name === 'TokenExpiredError' ? 'Session expired. Please log in again.' : 'Authentication failed',
+      message: error.name === 'TokenExpiredError'
+        ? 'Session expired. Please log in again.'
+        : 'Authentication failed',
     });
   }
 };
