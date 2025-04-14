@@ -1,20 +1,14 @@
 import mongoose from "mongoose";
 
-const connectDB = async () => {
+const connectDB = async ()=>{
     try {
-        await mongoose.connect(`${process.env.MONGODB_URI}/greencart`, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 15000
-        });
-
-        mongoose.connection.on('connected', () => {
-            console.log("MongoDB connected successfully");
-        });
-
+        mongoose.connection.on('connected', ()=> console.log("Database Connected")
+        );
+        await mongoose.connect(`${process.env.MONGODB_URI}/greencart`)
     } catch (error) {
-        console.error("MongoDB connection error:", error.message);
+        console.error(error.message);
     }
-};
+}
+
 
 export default connectDB;
