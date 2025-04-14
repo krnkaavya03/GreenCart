@@ -13,22 +13,21 @@ export const placeOrderCOD = async (req, res) => {
   try {
     const { userId, items, address } = req.body;
 
-    console.log("Received COD order:", req.body); // 🐞 Debugging
+    console.log("Received COD order:", req.body);
 
     if (!userId) return res.status(400).json({ success: false, message: "userId is required" });
-    if (!address || items.length === 0)
-      return res.status(400).json({ success: false, message: "Invalid data" });
+    if (!address || !Array.isArray(items) || items.length === 0)
+      return res.status(400).json({ success: false, message: "Invalid address or empty items" });
 
-    // Calculate amount
     let amount = 0;
+
     for (const item of items) {
       const product = await Product.findById(item.product);
       if (!product) return res.status(400).json({ success: false, message: "Invalid product" });
       amount += product.offerPrice * item.quantity;
     }
 
-    // Add Tax (2%)
-    amount += Math.floor(amount * 0.02);
+    amount += Math.floor(amount * 0.02); // 2% tax
 
     await Order.create({
       userId,
@@ -52,11 +51,11 @@ export const placeOrderStripe = async (req, res) => {
     const { userId, items, address } = req.body;
     const { origin } = req.headers;
 
-    console.log("Received Stripe order:", req.body); // 🐞 Debugging
+    console.log("Received Stripe order:", req.body);
 
     if (!userId) return res.status(400).json({ success: false, message: "userId is required" });
-    if (!address || items.length === 0)
-      return res.status(400).json({ success: false, message: "Invalid data" });
+    if (!address || !Array.isArray(items) || items.length === 0)
+      return res.status(400).json({ success: false, message: "Invalid address or empty items" });
 
     let amount = 0;
     const productData = [];
@@ -74,8 +73,7 @@ export const placeOrderStripe = async (req, res) => {
       amount += product.offerPrice * item.quantity;
     }
 
-    // Add Tax (2%)
-    amount += Math.floor(amount * 0.02);
+    amount += Math.floor(amount * 0.02); // 2% tax
 
     const order = await Order.create({
       userId,
@@ -125,45 +123,35 @@ export const stripeWebhooks = async (req, res) => {
     );
 
     switch (event.type) {
-      case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object;
-        const paymentIntentId = paymentIntent.id;
+      case "checkout.session.completed": {
+        const session = event.data.object;
+        const { orderId, userId } = session.metadata;
 
-        const sessionList = await stripeInstance.checkout.sessions.list({
-          payment_intent: paymentIntentId,
-        });
-
-        const { orderId, userId } = sessionList.data[0].metadata;
-
-        // Mark payment as paid
+        // ✅ Mark the order as paid
         await Order.findByIdAndUpdate(orderId, { isPaid: true });
 
-        // Clear user's cart
+        // ✅ Clear user cart
         await User.findByIdAndUpdate(userId, { cartItems: {} });
 
+        console.log("Payment successful for order:", orderId);
         break;
       }
 
-      case "payment_intent.payment_failed": {
-        const paymentIntent = event.data.object;
-        const paymentIntentId = paymentIntent.id;
+      case "checkout.session.expired": {
+        const session = event.data.object;
+        const { orderId } = session.metadata;
 
-        const sessionList = await stripeInstance.checkout.sessions.list({
-          payment_intent: paymentIntentId,
-        });
-
-        const { orderId } = sessionList.data[0].metadata;
-
+        // ✅ Delete the order on failed/expired payment
         await Order.findByIdAndDelete(orderId);
-
+        console.log("Payment failed, deleted order:", orderId);
         break;
       }
 
       default:
-        console.warn(`Unhandled Stripe event: ${event.type}`);
+        console.warn(`Unhandled Stripe event type: ${event.type}`);
     }
 
-    res.json({ received: true });
+    res.status(200).json({ received: true });
   } catch (error) {
     console.error("Stripe Webhook Error:", error.message);
     res.status(400).send(`Webhook Error: ${error.message}`);
